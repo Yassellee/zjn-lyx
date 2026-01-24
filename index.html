@@ -609,6 +609,93 @@
             stroke: #d47272;
         }
 
+        /* Achievement Page */
+        .achievement-item {
+            display: flex;
+            gap: 16px;
+            padding: 20px;
+            background: #fff;
+            border-radius: var(--radius);
+            margin-bottom: 12px;
+            box-shadow: var(--shadow-soft);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .achievement-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: var(--primary);
+        }
+
+        .achievement-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            background: rgba(201, 168, 124, 0.15);
+        }
+
+        .achievement-icon svg {
+            width: 24px;
+            height: 24px;
+            stroke-width: 1.5;
+            fill: none;
+            stroke: var(--primary);
+        }
+
+        .achievement-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .achievement-title {
+            font-weight: 500;
+            margin-bottom: 4px;
+            color: var(--text-primary);
+        }
+
+        .achievement-meta {
+            font-size: 0.8rem;
+            color: var(--text-light);
+        }
+
+        .achievement-delete {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            width: 28px;
+            height: 28px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .achievement-delete svg {
+            width: 18px;
+            height: 18px;
+            stroke: var(--text-light);
+            stroke-width: 1.5;
+            fill: none;
+        }
+
+        .achievement-item:hover .achievement-delete {
+            opacity: 1;
+        }
+
+        .achievement-delete:hover svg {
+            stroke: #d47272;
+        }
+
         /* Add Form */
         .add-form {
             background: #fff;
@@ -1189,6 +1276,39 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Achievement Page -->
+            <div class="page" id="achievementPage">
+                <div class="section-header">
+                    <div>
+                        <h2 class="section-title">成就</h2>
+                        <p class="section-subtitle">记录闪光时刻</p>
+                    </div>
+                </div>
+                <div class="guest-notice" id="achievementGuestNotice" style="display: none;">
+                    访客模式：仅可浏览，无法添加或删除成就
+                </div>
+                <button class="add-btn" id="addAchievementBtn">
+                    <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    添加新成就
+                </button>
+                <div class="toggle-form" id="achievementFormContainer">
+                    <div class="add-form">
+                        <div class="form-row">
+                            <label class="form-label">成就完成人</label>
+                            <input type="text" class="form-input" id="achievementBy" placeholder="例如：zjn / lyx">
+                        </div>
+                        <div class="form-row">
+                            <label class="form-label">成就内容</label>
+                            <textarea class="form-textarea" id="achievementContent" placeholder="描述这个成就..."></textarea>
+                        </div>
+                        <button class="form-btn" id="saveAchievementBtn">保存成就</button>
+                    </div>
+                </div>
+                <div id="achievementList">
+                    <!-- Achievements will be added here -->
+                </div>
+            </div>
         </main>
 
         <!-- Navigation -->
@@ -1218,6 +1338,13 @@
                         <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
                     </svg>
                     <span>存钱罐</span>
+                </button>
+                <button class="nav-item" data-page="achievement">
+                    <svg viewBox="0 0 24 24">
+                        <circle cx="12" cy="8" r="6"></circle>
+                        <path d="M15 14l3 7-6-3-6 3 3-7"></path>
+                    </svg>
+                    <span>成就</span>
                 </button>
             </div>
         </nav>
@@ -1315,6 +1442,10 @@
         const planFormContainer = document.getElementById('planFormContainer');
         const savePlanBtn = document.getElementById('savePlanBtn');
         const planList = document.getElementById('planList');
+        const addAchievementBtn = document.getElementById('addAchievementBtn');
+        const achievementFormContainer = document.getElementById('achievementFormContainer');
+        const saveAchievementBtn = document.getElementById('saveAchievementBtn');
+        const achievementList = document.getElementById('achievementList');
         const addDepositBtn = document.getElementById('addDepositBtn');
         const withdrawBtn = document.getElementById('withdrawBtn');
         const depositFormContainer = document.getElementById('depositFormContainer');
@@ -1426,6 +1557,8 @@
             document.getElementById('planGuestNotice').style.display = isGuest ? 'block' : 'none';
             addPlanBtn.style.display = isGuest ? 'none' : 'flex';
             document.getElementById('depositGuestNotice').style.display = isGuest ? 'block' : 'none';
+            document.getElementById('achievementGuestNotice').style.display = isGuest ? 'block' : 'none';
+            addAchievementBtn.style.display = isGuest ? 'none' : 'flex';
             addDepositBtn.disabled = isGuest;
             withdrawBtn.disabled = isGuest;
             document.getElementById('depositActions').style.opacity = isGuest ? '0.5' : '1';
@@ -1469,6 +1602,13 @@
             onValue(depositsRef, (snapshot) => {
                 const data = snapshot.val() || { total: 0, history: {} };
                 renderDeposit(data);
+            });
+
+            // Achievements listener
+            const achievementsRef = ref(database, 'achievements');
+            onValue(achievementsRef, (snapshot) => {
+                const achievements = snapshot.val() || {};
+                renderAchievements(Object.entries(achievements).map(([id, data]) => ({ id, ...data })));
             });
         }
 
@@ -1726,6 +1866,105 @@
                 showToast('已删除');
             } catch (error) {
                 console.error('Delete plan error:', error);
+                showToast('删除失败');
+            }
+            hideSync();
+        }
+
+        // ==================== Achievements ====================
+        addAchievementBtn.addEventListener('click', () => {
+            achievementFormContainer.classList.toggle('active');
+        });
+
+        saveAchievementBtn.addEventListener('click', async () => {
+            const by = document.getElementById('achievementBy').value.trim();
+            const content = document.getElementById('achievementContent').value.trim();
+
+            if (!content) {
+                showToast('请输入成就内容');
+                return;
+            }
+
+            showSync();
+            try {
+                const achievementsRef = ref(database, 'achievements');
+                const newAchievementRef = push(achievementsRef);
+                await set(newAchievementRef, {
+                    by: by || currentUser.name,
+                    content,
+                    createdAt: Date.now(),
+                    createdBy: currentUser.name
+                });
+
+                document.getElementById('achievementBy').value = '';
+                document.getElementById('achievementContent').value = '';
+                achievementFormContainer.classList.remove('active');
+                showToast('成就已保存');
+            } catch (error) {
+                console.error('Save achievement error:', error);
+                showToast('保存失败');
+            }
+            hideSync();
+        });
+
+        function renderAchievements(achievements) {
+            const isGuest = currentUser.role === 'guest';
+
+            if (achievements.length === 0) {
+                achievementList.innerHTML = `
+                    <div class="empty-state">
+                        <svg viewBox="0 0 24 24">
+                            <circle cx="12" cy="8" r="6"></circle>
+                            <path d="M15 14l3 7-6-3-6 3 3-7"></path>
+                        </svg>
+                        <p>还没有成就，快来记录一个吧~</p>
+                    </div>
+                `;
+                return;
+            }
+
+            achievements.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
+            achievementList.innerHTML = achievements.map(item => `
+                <div class="achievement-item" data-id="${item.id}">
+                    <div class="achievement-icon">
+                        <svg viewBox="0 0 24 24">
+                            <circle cx="12" cy="8" r="6"></circle>
+                            <path d="M15 14l3 7-6-3-6 3 3-7"></path>
+                        </svg>
+                    </div>
+                    <div class="achievement-content">
+                        <div class="achievement-title">${escapeHtml(item.content || '')}</div>
+                        <div class="achievement-meta">${escapeHtml(item.by || '')}${item.createdAt ? ` · ${new Date(item.createdAt).toLocaleDateString('zh-CN')}` : ''}</div>
+                    </div>
+                    ${!isGuest ? `
+                        <button class="achievement-delete">
+                            <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                        </button>
+                    ` : ''}
+                </div>
+            `).join('');
+
+            if (!isGuest) {
+                achievementList.querySelectorAll('.achievement-delete').forEach(btn => {
+                    btn.addEventListener('click', async () => {
+                        const item = btn.closest('.achievement-item');
+                        const id = item.dataset.id;
+                        await deleteAchievement(id);
+                    });
+                });
+            }
+        }
+
+        async function deleteAchievement(id) {
+            if (!confirm('确定要删除这个成就吗？')) return;
+
+            showSync();
+            try {
+                await remove(ref(database, `achievements/${id}`));
+                showToast('已删除');
+            } catch (error) {
+                console.error('Delete achievement error:', error);
                 showToast('删除失败');
             }
             hideSync();
