@@ -667,6 +667,23 @@
             color: var(--text-light);
         }
 
+        .achievement-date-input {
+            margin-top: 6px;
+            padding: 6px 10px;
+            border: 1px solid #e8e4de;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-family: inherit;
+            background: var(--bg-cream);
+            color: var(--text-secondary);
+        }
+
+        .achievement-date-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: #fff;
+        }
+
         .achievement-delete {
             position: absolute;
             top: 12px;
@@ -1302,6 +1319,10 @@
                             <label class="form-label">成就内容</label>
                             <textarea class="form-textarea" id="achievementContent" placeholder="描述这个成就..."></textarea>
                         </div>
+                        <div class="form-row">
+                            <label class="form-label">成就日期</label>
+                            <input type="date" class="form-input" id="achievementDate">
+                        </div>
                         <button class="form-btn" id="saveAchievementBtn">保存成就</button>
                     </div>
                 </div>
@@ -1879,6 +1900,7 @@
         saveAchievementBtn.addEventListener('click', async () => {
             const by = document.getElementById('achievementBy').value.trim();
             const content = document.getElementById('achievementContent').value.trim();
+            const date = document.getElementById('achievementDate').value;
 
             if (!content) {
                 showToast('请输入成就内容');
@@ -1892,12 +1914,14 @@
                 await set(newAchievementRef, {
                     by: by || currentUser.name,
                     content,
+                    date: date || '',
                     createdAt: Date.now(),
                     createdBy: currentUser.name
                 });
 
                 document.getElementById('achievementBy').value = '';
                 document.getElementById('achievementContent').value = '';
+                document.getElementById('achievementDate').value = '';
                 achievementFormContainer.classList.remove('active');
                 showToast('成就已保存');
             } catch (error) {
@@ -1935,7 +1959,10 @@
                     </div>
                     <div class="achievement-content">
                         <div class="achievement-title">${escapeHtml(item.content || '')}</div>
-                        <div class="achievement-meta">${escapeHtml(item.by || '')}${item.createdAt ? ` · ${new Date(item.createdAt).toLocaleDateString('zh-CN')}` : ''}</div>
+                        <div class="achievement-meta">${escapeHtml(item.by || '')}${item.date ? ` · ${formatDate(item.date)}` : ''}</div>
+                        ${!isGuest ? `
+                            <input type="date" class="achievement-date-input" value="${item.date || ''}" data-id="${item.id}">
+                        ` : ''}
                     </div>
                     ${!isGuest ? `
                         <button class="achievement-delete">
@@ -1951,6 +1978,24 @@
                         const item = btn.closest('.achievement-item');
                         const id = item.dataset.id;
                         await deleteAchievement(id);
+                    });
+                });
+
+                achievementList.querySelectorAll('.achievement-date-input').forEach(input => {
+                    input.addEventListener('change', async () => {
+                        const id = input.dataset.id;
+                        const value = input.value;
+                        showSync();
+                        try {
+                            await update(ref(database, `achievements/${id}`), {
+                                date: value || ''
+                            });
+                            showToast('日期已更新');
+                        } catch (error) {
+                            console.error('Update achievement date error:', error);
+                            showToast('更新失败');
+                        }
+                        hideSync();
                     });
                 });
             }
